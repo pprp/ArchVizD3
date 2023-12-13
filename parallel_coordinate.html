@@ -41,20 +41,25 @@
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        // Parse the Data
+        // Read the data
         d3.json("input.json").then(function (data) {
             // Extract the list of dimensions and create a scale for each.
-            dimensions = d3.keys(data[0]).filter(function (d) {
-                return d != "name"; // Exclude the name field from the dimensions
-            });
+            var dimensions = d3.keys(data[0]);
 
             var y = {};
-            for (i in dimensions) {
-                name = dimensions[i];
-                y[name] = d3.scaleLinear()
-                    .domain(d3.extent(data, function (d) { return +d[name]; }))
-                    .range([height, 0]);
-            }
+            dimensions.forEach(function (dimension) {
+                if (dimension === "Accuracy") {
+                    // Create a linear scale for numeric values
+                    y[dimension] = d3.scaleLinear()
+                        .domain(d3.extent(data, function (d) { return +d[dimension]; }))
+                        .range([height, 0]);
+                } else {
+                    // Create a point scale for categorical values
+                    y[dimension] = d3.scalePoint()
+                        .domain([...new Set(data.map(function (d) { return d[dimension]; }))])
+                        .range([height, 0]);
+                }
+            });
 
             // Build the X scale and axis:
             var x = d3.scalePoint()
@@ -62,26 +67,27 @@
                 .padding(0.5)
                 .domain(dimensions);
 
+            // The path function takes a row of the data as input, and returns the corresponding line.
+            function path(d) {
+                return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; }));
+            }
+
             // Draw the lines
             svg.selectAll("myPath")
                 .data(data)
                 .enter().append("path")
-                .attr("class", function (d) { return "line " + d.name })
-                .attr("d", function (d) { return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; })); })
+                .attr("class", "line")
+                .attr("d", path)
                 .style("fill", "none")
                 .style("stroke", "#69b3a2")
                 .style("opacity", 0.5);
 
             // Draw the axis:
             svg.selectAll("myAxis")
-                // For each dimension of the dataset, add a 'g' element:
                 .data(dimensions).enter()
                 .append("g")
-                // Translate this element to its right position on the x axis
                 .attr("transform", function (d) { return "translate(" + x(d) + ")"; })
-                // Build the axis with the call function
                 .each(function (d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
-                // Add axis title
                 .append("text")
                 .style("text-anchor", "middle")
                 .attr("y", -9)
@@ -98,8 +104,8 @@
                     d3.selectAll(".line").transition().duration(200).style("opacity", 0.5);
                     d3.select(this).transition().duration(200).style("stroke", "#69b3a2");
                 });
-
         });
+
 
     </script>
 </body>
