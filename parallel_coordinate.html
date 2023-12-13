@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Parallel Coordinates Plot</title>
+    <!-- Include D3.js -->
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        /* Add some basic styling */
+        .axis line,
+        .axis path {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            fill: none;
+            stroke: steelblue;
+            stroke-width: 1.5px;
+        }
+
+        .line:hover {
+            stroke: tomato;
+            stroke-width: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // Set the dimensions and margins of the diagram
+        var margin = { top: 30, right: 10, bottom: 10, left: 0 },
+            width = 960 - margin.left - margin.right,
+            height = 400 - margin.top - margin.bottom;
+
+        // Append the svg object to the body of the page
+        var svg = d3.select("body").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // Parse the Data
+        d3.json("input.json").then(function (data) {
+            // Extract the list of dimensions and create a scale for each.
+            dimensions = d3.keys(data[0]).filter(function (d) {
+                return d != "name"; // Exclude the name field from the dimensions
+            });
+
+            var y = {};
+            for (i in dimensions) {
+                name = dimensions[i];
+                y[name] = d3.scaleLinear()
+                    .domain(d3.extent(data, function (d) { return +d[name]; }))
+                    .range([height, 0]);
+            }
+
+            // Build the X scale and axis:
+            var x = d3.scalePoint()
+                .range([0, width])
+                .padding(0.5)
+                .domain(dimensions);
+
+            // Draw the lines
+            svg.selectAll("myPath")
+                .data(data)
+                .enter().append("path")
+                .attr("class", function (d) { return "line " + d.name })
+                .attr("d", function (d) { return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; })); })
+                .style("fill", "none")
+                .style("stroke", "#69b3a2")
+                .style("opacity", 0.5);
+
+            // Draw the axis:
+            svg.selectAll("myAxis")
+                // For each dimension of the dataset, add a 'g' element:
+                .data(dimensions).enter()
+                .append("g")
+                // Translate this element to its right position on the x axis
+                .attr("transform", function (d) { return "translate(" + x(d) + ")"; })
+                // Build the axis with the call function
+                .each(function (d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
+                // Add axis title
+                .append("text")
+                .style("text-anchor", "middle")
+                .attr("y", -9)
+                .text(function (d) { return d; })
+                .style("fill", "black");
+
+            // Add interaction
+            svg.selectAll(".line")
+                .on("mouseover", function (event, d) {
+                    d3.selectAll(".line").transition().duration(200).style("opacity", 0.05);
+                    d3.select(this).transition().duration(200).style("opacity", 1).style("stroke", "black");
+                })
+                .on("mouseout", function (event, d) {
+                    d3.selectAll(".line").transition().duration(200).style("opacity", 0.5);
+                    d3.select(this).transition().duration(200).style("stroke", "#69b3a2");
+                });
+
+        });
+
+    </script>
+</body>
+
+</html>
