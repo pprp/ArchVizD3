@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <title>Neural Architecture Visualization Dashboard</title>
     <style>
         .container {
@@ -85,7 +86,7 @@
 </head>
 
 <body>
-    <script src="https://d3js.org/d3.v5.min.js">
+    <script>
         // Load the JSON data
         d3.json("data/zc_nasbench201_20p.json").then(function (data) {
             // Visualization code goes here
@@ -96,7 +97,8 @@
         });
     </script>
 
-    <font color="brown" size="20"> Visual Analysis of Nueral Architecture with Zero-cost Proxies</font>
+    <font color="brown" size="20"> Visual Analysis of Nueral Architecture
+        with Zero-cost Proxies</font>
 
     <br>
     <div class="container">
@@ -105,13 +107,33 @@
             <button id="updateButton">Control Panel A</button>
             <form>
                 <label for="threshold">Accuracy Threshold: <span id="rangeValue">40</span></label>
-                <input type="range" id="threshold" min="70" max="90" value="70">
+                <input type="range" id="accuracyRange" min="70" max="90" value="70">
             </form>
             <br>
             <label>
-                <input type="checkbox" id="filterCheckbox"> Filter Accuracy > 40
+                <input type="checkbox" id="filterCheckbox"> Filter Accuracy
+                > 40
             </label>
-
+            <br>
+            <hr>
+            Correlation Analysis
+            <br>
+            <label for="proxy-select">Proxy:</label>
+            <select id="proxy-select">
+                <option value="epe_nas">epe_nas</option>
+                <option value="fisher">fisher</option>
+                <option value="flops">flops</option>
+                <option value="params">params</option>
+                <option value="grad_norm">grad_norm</option>
+                <option value="grasp">grasp</option>
+                <option value="nwot">hessian</option>
+                <option value="jacov">nwot</option>
+                <option value="l2_norm">jacov</option>
+                <option value="plain">l2_norm</option>
+                <option value="snip">plain</option>
+                <option value="synflow">snip</option>
+                <option value="zen">zen</option>
+            </select>
         </div>
         <div class="transmission-view panel" id="B">
             <button id="updateButton">Transmission View B</button>
@@ -126,14 +148,14 @@
                 var width = 600 - margin.left - margin.right;
                 var height = 420 - margin.top - margin.bottom;
 
-                var svg = d3.select("#plot")
+                const svg = d3.select("#plot")
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", height + margin.top + margin.bottom)
                     .append("g")
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-                var xScale = d3.scaleLinear().range([0, width]);
-                var yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+                // var xScale = d3.scaleLinear().range([0, width]);
+                // var yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
 
                 // Function to update the plot based on the selected threshold
                 function updatePlot(threshold) {
@@ -148,24 +170,35 @@
                         return { x: d, y: (i + 1) / n };
                     });
 
-                    xScale.domain([d3.min(filteredData), d3.max(filteredData)]);
+                    const xScale = d3.scaleLinear()
+                        .domain([d3.min(filteredData), d3.max(filteredData)]) // assuming filteredData is just accuracy values
+                        .range([0, width]);
+
+                    const yScale = d3.scaleLinear()
+                        .domain([0, 1]) // CDF always goes from 0 to 1
+                        .range([height, 0]);
+
 
                     var ecdfLine = d3.line()
-                        .x(function (d) { return xScale(d.x); })
-                        .y(function (d) { return yScale(d.y); });
+                        .x(function (d) { return xScale(d.x); }) // d.x should be the accuracy value
+                        .y(function (d) { return yScale(d.y); }); // d.y is the cumulative probability
+
 
                     svg.selectAll("*").remove();
 
                     svg.append("path")
                         .datum(ecdfData)
                         .attr("class", "line")
-                        .attr("d", ecdfLine);
+                        .attr("d", ecdfLine)
+                        .attr("fill", "none") // Make sure to set fill to none for a line
+                        .attr("stroke", "steelblue"); // Use stroke to color the line
 
                     svg.append("g")
                         .attr("transform", "translate(0," + height + ")")
                         .call(d3.axisBottom(xScale));
 
                     svg.append("g")
+                        .attr("transform", "translate(40,0)")
                         .call(d3.axisLeft(yScale));
 
                     svg.append("text")
@@ -193,7 +226,7 @@
                 updatePlot(10);
 
                 // Load the JSON data
-                d3.json("./zc_nasbench201_20p.json").then(function (data) {
+                d3.json("data/zc_nasbench201_20p.json").then(function (data) {
                     // Visualization code goes here
                     // Example: Create circles for each data point
                     svg.selectAll("circle")
@@ -205,12 +238,110 @@
             </script>
 
         </div>
-        <div class="map-view panel" id="C">Map View C</div>
+        <div class="Correlation ZC panel" id="C">
+            <button id="updateButton">Map View C</button>
+
+            <div id="scatter-plot"></div>
+
+            <script>
+
+
+                const svgScatter = d3.select('#scatter-plot').append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+
+                function updateChart(proxyType, jsonData) {
+                    // Clear existing SVG elements for updates
+                    svgScatter.selectAll('*').remove();
+
+                    // Process jsonData into a suitable format for D3
+                    const processedData = Object.keys(jsonData).map(key => {
+                        const item = jsonData[key];
+                        return {
+                            proxy: item[proxyType].score,
+                            val_accuracy: item.val_accuracy
+                        };
+                    });
+
+                    var filteredData = processedData.filter(function (d, i) {
+                        return d.val_accuracy > 50;
+                    });
+
+                    // Define scales
+                    const xScale = d3.scaleLinear()
+                        .domain([d3.min(filteredData, d => d.proxy), d3.max(processedData, d => d.proxy)])
+                        .range([40, width - 20]);
+
+                    const yScale = d3.scaleLinear()
+                        .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(processedData, d => d.val_accuracy)])
+                        .range([height - 20, 20]);
+
+                    // Add axes
+                    svgScatter.append("g")
+                        .attr("transform", "translate(0," + (height - 20) + ")")
+                        .call(d3.axisBottom(xScale));
+
+                    svgScatter.append("g")
+                        .attr("transform", "translate(40,0)")
+                        .call(d3.axisLeft(yScale));
+
+                    // Redraw the x-axis
+                    svgScatter.select(".x.axis") // Select the existing x-axis in your SVG
+                        .transition()       // Start a transition for smooth updating
+                        .duration(1000)     // Set the duration of the transition
+                        .call(d3.axisBottom(xScale)); // Redraw the axis with the updated scale
+
+                    // Redraw the y-axis
+                    svgScatter.select(".y.axis") // Select the existing y-axis in your SVG
+                        .transition()       // Start a transition for smooth updating
+                        .duration(1000)     // Set the duration of the transition
+                        .call(d3.axisLeft(yScale)); // Redraw the axis with the updated scale
+
+                    svgScatter.append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 0 - margin.left)
+                        .attr("x", 0 - (height / 2))
+                        .attr("dy", "1em")
+                        .style("text-anchor", "middle")
+                        .text("Cumulative Probability");
+
+                    svgScatter.append("text")
+                        .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.top + 10) + ")")
+                        .style("text-anchor", "middle")
+                        .text("Accuracy");
+
+                    // Define a color scale using a D3 color interpolator
+                    var colorScale = d3.scaleSequential(d3.interpolateViridis) // You can choose any interpolator you like
+                        .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(filteredData, d => d.val_accuracy)]);
+
+
+                    // Plot points
+                    svgScatter.selectAll("circle")
+                        .data(filteredData)
+                        .enter().append("circle")
+                        .attr("cx", d => xScale(d.proxy))
+                        .attr("cy", d => yScale(d.val_accuracy))
+                        .attr("r", 5)
+                        .attr("fill", d => colorScale(d.val_accuracy));
+                    //.attr("fill", "steelblue")
+                }
+
+                d3.json("data/zc_nasbench201_20p.json").then(function (filteredData) {
+                    d3.select('#proxy-select').on('change', function () {
+                        const selectedProxy = d3.select(this).property('value');
+                        updateChart(selectedProxy, filteredData);
+                    });
+
+                    // Initial rendering
+                    updateChart('epe_nas', filteredData);
+                });
+
+            </script>
+        </div>
         <div class="temporal-view panel" id="D">Temporal View D</div>
         <div class="statistics-view panel" id="E">Statistics View E</div>
         <div class="wordcloud-view panel" id="F">Wordcloud View F</div>
     </div>
-
 
 </body>
 
