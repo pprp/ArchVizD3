@@ -1,1 +1,2 @@
-data/zc_nasbench201_20p.json
+data/*
+.DS_Store
