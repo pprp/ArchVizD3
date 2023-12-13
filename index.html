@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Neural Architecture Visualization Dashboard</title>
+    <style>
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 10px;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        .control-panel {
+            grid-column: 1;
+            grid-row: 1 / span 2;
+        }
+
+        .transmission-view {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .map-view {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .temporal-view {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        .statistics-view {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .wordcloud-view {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .panel {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            text-align: center;
+            cursor: pointer;
+            outline: none;
+            color: #fff;
+            background-color: #5135b6;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 1px 1px #999;
+        }
+
+        div {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f9f9f9;
+            box-shadow: 1px 1px #999;
+        }
+
+        .button:hover {
+            background-color: #3e8e41
+        }
+
+        .button:active {
+            background-color: #5135b6;
+            box-shadow: 0 5px #666;
+            transform: translateY(4px);
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://d3js.org/d3.v5.min.js">
+        // Load the JSON data
+        d3.json("data/zc_nasbench201_20p.json").then(function (data) {
+            // Visualization code goes here
+            // Example: Create circles for each data point
+            svg.selectAll("circle")
+                .data(data)
+                .enter()
+        });
+    </script>
+
+    <font color="brown" size="20"> Visual Analysis of Nueral Architecture with Zero-cost Proxies</font>
+
+    <br>
+    <div class="container">
+        <div class="control-panel panel" id="A">
+            <!-- Control Panel A -->
+            <button id="updateButton">Control Panel A</button>
+            <form>
+                <label for="threshold">Accuracy Threshold: <span id="rangeValue">40</span></label>
+                <input type="range" id="threshold" min="70" max="90" value="70">
+            </form>
+            <br>
+            <label>
+                <input type="checkbox" id="filterCheckbox"> Filter Accuracy > 40
+            </label>
+
+        </div>
+        <div class="transmission-view panel" id="B">
+            <button id="updateButton">Transmission View B</button>
+            <br>
+            <svg id="plot"></svg>
+
+            <script>
+                var accuracyData = [71.08, 91.694, 71.058, 79.522, 72.304, 81.56, 84.526, 88.662, 88.142, 80.066, 10.0];
+                var testAccuracy = [79.23, 77.002, 75.198, 86.068, 72.33, 86.246, 81.3, 71.63, 86.788, 80.556, 86.626];
+
+                var margin = { top: 20, right: 20, bottom: 40, left: 40 };
+                var width = 600 - margin.left - margin.right;
+                var height = 420 - margin.top - margin.bottom;
+
+                var svg = d3.select("#plot")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                var xScale = d3.scaleLinear().range([0, width]);
+                var yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+
+                // Function to update the plot based on the selected threshold
+                function updatePlot(threshold) {
+                    var filteredData = accuracyData.filter(function (d, i) {
+                        return testAccuracy[i] > threshold;
+                    });
+
+                    filteredData.sort(function (a, b) { return a - b; });
+
+                    var n = filteredData.length;
+                    var ecdfData = filteredData.map(function (d, i) {
+                        return { x: d, y: (i + 1) / n };
+                    });
+
+                    xScale.domain([d3.min(filteredData), d3.max(filteredData)]);
+
+                    var ecdfLine = d3.line()
+                        .x(function (d) { return xScale(d.x); })
+                        .y(function (d) { return yScale(d.y); });
+
+                    svg.selectAll("*").remove();
+
+                    svg.append("path")
+                        .datum(ecdfData)
+                        .attr("class", "line")
+                        .attr("d", ecdfLine);
+
+                    svg.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .call(d3.axisBottom(xScale));
+
+                    svg.append("g")
+                        .call(d3.axisLeft(yScale));
+
+                    svg.append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 0 - margin.left)
+                        .attr("x", 0 - (height / 2))
+                        .attr("dy", "1em")
+                        .style("text-anchor", "middle")
+                        .text("Cumulative Probability");
+
+                    svg.append("text")
+                        .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.top + 10) + ")")
+                        .style("text-anchor", "middle")
+                        .text("Accuracy");
+                }
+
+                // Event listener for the range input
+                d3.select("#accuracyRange").on("input", function () {
+                    var threshold = +this.value;
+                    document.getElementById("rangeValue").textContent = threshold;
+                    updatePlot(threshold);
+                });
+
+                // Initial plot rendering
+                updatePlot(10);
+
+                // Load the JSON data
+                d3.json("./zc_nasbench201_20p.json").then(function (data) {
+                    // Visualization code goes here
+                    // Example: Create circles for each data point
+                    svg.selectAll("circle")
+                        .data(data)
+                        .enter()
+                }).catch(function (error) {
+                    console.error("Error loading the JSON data: ", error);
+                });
+            </script>
+
+        </div>
+        <div class="map-view panel" id="C">Map View C</div>
+        <div class="temporal-view panel" id="D">Temporal View D</div>
+        <div class="statistics-view panel" id="E">Statistics View E</div>
+        <div class="wordcloud-view panel" id="F">Wordcloud View F</div>
+    </div>
+
+
+</body>
+
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ECDF Plot</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .line {
+            fill: none;
+            stroke: steelblue;
+            stroke-width: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Checkbox to toggle filtering -->
+    <label>
+        <input type="checkbox" id="filterCheckbox"> Filter Accuracy > 40
+    </label>
+    <svg id="plot"></svg>
+
+    <script>
+        var accuracyData = [71.08, 91.694, 71.058, 79.522, 72.304, 81.56, 84.526, 88.662, 88.142, 80.066, 10.0];
+        var testAccuracy = [79.23, 77.002, 75.198, 86.068, 72.33, 86.246, 81.3, 71.63, 86.788, 80.556, 86.626];
+
+        var margin = { top: 20, right: 20, bottom: 30, left: 40 };
+        var width = 600 - margin.left - margin.right;
+        var height = 400 - margin.top - margin.bottom;
+
+        var svg = d3.select("#plot")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var xScale = d3.scaleLinear().range([0, width]);
+        var yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+
+        // Function to update the plot
+        function updatePlot(filter) {
+            var filteredData = accuracyData;
+
+            if (filter) {
+                filteredData = accuracyData.filter(function (d, i) {
+                    return testAccuracy[i] > 80;
+                });
+            } else {
+                filteredData = accuracyData.filter(function (d, i) {
+                    return true;
+                });
+            }
+
+            filteredData.sort(function (a, b) { return a - b; });
+
+            var n = filteredData.length;
+            var ecdfData = filteredData.map(function (d, i) {
+                return { x: d, y: (i + 1) / n };
+            });
+
+            xScale.domain([d3.min(filteredData), d3.max(filteredData)]);
+
+            var ecdfLine = d3.line()
+                .x(function (d) { return xScale(d.x); })
+                .y(function (d) { return yScale(d.y); });
+
+            svg.selectAll("*").remove();
+
+            svg.append("path")
+                .datum(ecdfData)
+                .attr("class", "line")
+                .attr("d", ecdfLine);
+
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xScale));
+
+            svg.append("g")
+                .call(d3.axisLeft(yScale));
+
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .text("Cumulative Probability");
+
+            svg.append("text")
+                .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.top + 10) + ")")
+                .style("text-anchor", "middle")
+                .text("Accuracy");
+        }
+
+        // Checkbox event listener
+        d3.select("#filterCheckbox").on("change", function() {
+            updatePlot(this.checked);
+        });
+
+        // Initial plot rendering
+        updatePlot(false);
+    </script>
+</body>
+</html>
