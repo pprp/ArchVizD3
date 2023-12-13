@@ -13,9 +13,9 @@ Data-Driven Insights: Harness the power of D3.js for deep data analysis.
 
 ## Getting Started
 
-Clone the Repository: git clone https://github.com/yourusername/ArchVizD3
-Install Dependencies: Run npm install in the project directory.
-Launch Application: Execute npm start and navigate to localhost:3000.
+- Clone the Repository: git clone https://github.com/yourusername/ArchVizD3
+- Install Dependencies: Run npm install in the project directory.
+- Launch Application: Execute npm start and navigate to localhost:3000.
 
 ## Contributing
 
