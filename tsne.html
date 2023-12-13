@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>t-SNE Visualization with D3.js</title>
+    <!-- Include D3.js from CDN -->
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .axis line,
+        .axis path {
+            stroke: black;
+        }
+
+        .axis text {
+            font-family: sans-serif;
+            font-size: 10px;
+        }
+
+        circle {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- The SVG element that will contain our visualization -->
+    <label for="layerwise-proxy-select">Proxy:</label>
+    <select id="layerwise-proxy-select">
+        <option value="fisher_layerwise">fisher_layerwise</option>
+        <option value="grad_norm_layerwise">grad_norm_layerwise</option>
+        <option value="grasp_layerwise">grasp_layerwise</option>
+        <option value="l2_norm_layerwise">l2_norm_layerwise</option>
+        <option value="plain_layerwise">plain_layerwise</option>
+        <option value="snip_layerwise">snip_layerwise</option>
+        <option value="synflow_layerwise">synflow_layerwise</option>
+    </select>
+
+    <svg id="tsne" width="800" height="600"></svg>
+
+    <script>
+
+        d3.json('data/tsne_nb201_output.json').then(function (data) {
+            // Initial drawing with 'fisher_layerwise'
+            drawTsne(transformData(data['fisher_layerwise']));
+
+            // Setup the event listener for the dropdown menu
+            d3.select('#layerwise-proxy-select').on('change', function (event) {
+                var selectedProxy = d3.select(this).property('value');
+                d3.select('#tsne').selectAll('*').remove();
+                drawTsne(transformData(data[selectedProxy]));
+            });
+        });
+
+        function transformData(proxyData) {
+            return proxyData.x1.map((x, i) => ({
+                x1: x,
+                x2: proxyData.x2[i],
+                color: proxyData.color
+            }));
+        }
+
+        function drawTsne(tsneData) { 
+            var margin = { top: 10, right: 30, bottom: 30, left: 40 },
+                width = 800 - margin.left - margin.right,
+                height = 600 - margin.top - margin.bottom;
+
+            // Append the svg object to the body of the page
+            var svg_tsne = d3.select("#tsne")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+
+            // Create a tooltip
+            var tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0)
+                .style("background-color", "white")
+                .style("border", "solid")
+                .style("border-width", "2px")
+                .style("border-radius", "5px")
+                .style("padding", "5px");
+
+            // Add X axis
+            var x = d3.scaleLinear()
+                .domain([d3.min(tsneData, d => d.x1), d3.max(tsneData, d => d.x1)])
+                .range([0, width]);
+            svg_tsne.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x));
+
+            // Add Y axis
+            var y = d3.scaleLinear()
+                .domain([d3.min(tsneData, d => d.x2), d3.max(tsneData, d => d.x2)])
+                .range([height, 0]);
+            svg_tsne.append("g")
+                .call(d3.axisLeft(y));
+
+            var color_scale = d3.scaleOrdinal(d3.schemeCategory10)
+                .domain(['steelblue', 'darkorange', 'forestgreen', 'firebrick', 'darkviolet', 'gold', 'black']);
+            
+            console.log(color_scale('darkorange'));
+
+            // Add dots
+            svg_tsne.append('g')
+                .selectAll("dot")
+                .data(tsneData)
+                .enter()
+                .append("circle")
+                .attr("cx", d => x(d.x1))
+                .attr("cy", d => y(d.x2))
+                .attr("r", 5)
+                .style("fill", d => color_scale(d.color))
+                .on("mouseover", function (event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html("Color: " + d.color + "<br/>X1: " + d.x1 + "<br/>X2: " + d.x2)
+                        .style("left", (event.pageX) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function (d) {
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+
+        }
+
+    </script>
+</body>
+
+</html>
