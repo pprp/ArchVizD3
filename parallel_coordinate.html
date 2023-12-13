@@ -41,30 +41,27 @@
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        // Read the data
-        d3.json("input.json").then(function (data) {
-            // Extract the list of dimensions and create a scale for each.
-            var dimensions = d3.keys(data[0]);
 
-            var y = {};
-            dimensions.forEach(function (dimension) {
-                if (dimension === "Accuracy") {
-                    // Create a linear scale for numeric values
-                    y[dimension] = d3.scaleLinear()
-                        .domain(d3.extent(data, function (d) { return +d[dimension]; }))
-                        .range([height, 0]);
-                } else {
-                    // Create a point scale for categorical values
-                    y[dimension] = d3.scalePoint()
-                        .domain([...new Set(data.map(function (d) { return d[dimension]; }))])
-                        .range([height, 0]);
-                }
-            });
+
+        // Parse the Data
+        d3.json("input.json").then(function (data) {
+            // console.log(data)
+            // Extract the list of dimensions and create a scale for each.
+            const data_array = Object.values(data)
+            console.log(data_array)
+
+            dimensions = ["A", "B", "C"]
+
+            var y = {
+                "A": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                "B": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                "C": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+            };
 
             // Build the X scale and axis:
             var x = d3.scalePoint()
                 .range([0, width])
-                .padding(0.5)
+                .padding(1)
                 .domain(dimensions);
 
             // The path function takes a row of the data as input, and returns the corresponding line.
@@ -74,13 +71,13 @@
 
             // Draw the lines
             svg.selectAll("myPath")
-                .data(data)
+                .data(data_array)
                 .enter().append("path")
-                .attr("class", "line")
-                .attr("d", path)
+                .attr("d", function (d) { return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; })); })
+
                 .style("fill", "none")
-                .style("stroke", "#69b3a2")
-                .style("opacity", 0.5);
+                .style("stroke", "#000001")
+                .style("opacity", 0.1);
 
             // Draw the axis:
             svg.selectAll("myAxis")
@@ -95,14 +92,17 @@
                 .style("fill", "black");
 
             // Add interaction
-            svg.selectAll(".line")
+            svg.selectAll("path")
                 .on("mouseover", function (event, d) {
-                    d3.selectAll(".line").transition().duration(200).style("opacity", 0.05);
-                    d3.select(this).transition().duration(200).style("opacity", 1).style("stroke", "black");
+                    console.log(event.target.style.stroke)
+                    if (String(event.target.style.stroke).includes("rgb")) {
+                        d3.select(this).transition().duration(200).style("opacity", 1);
+                    }
                 })
                 .on("mouseout", function (event, d) {
-                    d3.selectAll(".line").transition().duration(200).style("opacity", 0.5);
-                    d3.select(this).transition().duration(200).style("stroke", "#69b3a2");
+                    if (String(event.target.style.stroke).includes("rgb")) {
+                        d3.select(this).transition().duration(200).style("opacity", 0.1);
+                    }
                 });
         });
 

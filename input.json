@@ -1,26 +1,20 @@
 {
-    {
-        "0_200": {
-            "A": "a",
-            "B": "a",
-            "C": "b",
-            "Accuracy": 80
-        }
+    "0_200": {
+        "A": "none",
+        "B": "skip_connect",
+        "C": "avg_pool_3x3",
+        "Accuracy": 80
     },
-    {
-        "1_200": {
-            "A": "b",
-            "B": "c",
-            "C": "a",
-            "Accuracy": 79
-        }
+    "1_200": {
+        "A": "nor_conv_1x1",
+        "B": "nor_conv_1x1",
+        "C": "nor_conv_3x3",
+        "Accuracy": 79
     },
-    {
-        "2_200": {
-            "A": "c",
-            "B": "a",
-            "C": "a",
-            "Accuracy": 81
-        }
-    },
+    "2_200": {
+        "A": "skip_connect",
+        "B": "nor_conv_3x3",
+        "C": "none",
+        "Accuracy": 81
+    }
 }
