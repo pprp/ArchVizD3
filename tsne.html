@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 
-    <head>
-        <title>t-SNE Visualization with D3.js</title>
-        <!-- Include D3.js from CDN -->
-        <script src="https://d3js.org/d3.v7.min.js"></script>
-        <style>
+<head>
+    <title>t-SNE Visualization with D3.js</title>
+    <!-- Include D3.js from CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
         .axis line,
         .axis path {
             stroke: black;
@@ -20,24 +20,24 @@
             opacity: 0.8;
         }
     </style>
-    </head>
+</head>
 
-    <body>
-        <!-- The SVG element that will contain our visualization -->
-        <label for="layerwise-proxy-select">Proxy:</label>
-        <select id="layerwise-proxy-select">
-            <option value="fisher_layerwise">fisher_layerwise</option>
-            <option value="grad_norm_layerwise">grad_norm_layerwise</option>
-            <option value="grasp_layerwise">grasp_layerwise</option>
-            <option value="l2_norm_layerwise">l2_norm_layerwise</option>
-            <option value="plain_layerwise">plain_layerwise</option>
-            <option value="snip_layerwise">snip_layerwise</option>
-            <option value="synflow_layerwise">synflow_layerwise</option>
-        </select>
-        <br>
-        <div id="my_dataviz"></div>
+<body>
+    <!-- The SVG element that will contain our visualization -->
+    <label for="layerwise-proxy-select">Proxy:</label>
+    <select id="layerwise-proxy-select">
+        <option value="fisher_layerwise">fisher_layerwise</option>
+        <option value="grad_norm_layerwise">grad_norm_layerwise</option>
+        <option value="grasp_layerwise">grasp_layerwise</option>
+        <option value="l2_norm_layerwise">l2_norm_layerwise</option>
+        <option value="plain_layerwise">plain_layerwise</option>
+        <option value="snip_layerwise">snip_layerwise</option>
+        <option value="synflow_layerwise">synflow_layerwise</option>
+    </select>
+    <br>
+    <div id="my_dataviz"></div>
 
-        <script>
+    <script>
         function transformData(proxyData) {
             return proxyData.x1.map((x, i) => ({
                 x1: x,
@@ -157,7 +157,7 @@
                     // Add Y axis for vlineSvg chart
                     vlineSvg.append("g")
                         .call(d3.axisLeft(vlineY));
-                    
+
                     console.log(combinedData);
 
                     vlineSvg.selectAll(".bar").data(combinedData).enter().append("rect").attr("class", "bar")
@@ -185,91 +185,6 @@
         }
 
     </script>
-
-        <!-- svg_tsne.append('g')
-                .selectAll("dot")
-                .data(tsneData)
-                .enter()
-                .append("circle")
-                .attr("cx", d => x(d.x1))
-                .attr("cy", d => y(d.x2))
-                .attr("r", 2)
-                .style("fill", d => color_scale(d.color))
-                .on("mouseover", function (event, d) {
-                    // Enlarge the circle
-                    d3.select(this).transition()
-                        .duration('50')
-                        .attr("r", 20)
-                        .attr("fill", "red")
-                        .attr("opacity", 1);
-
-                    // Assuming 'i' is the index you need
-                    let i = tsneData.indexOf(d);
-                    var stats = layerwiseData["cifar10"][i.toString()][proxyname];
-
-                    // add info text for info div 
-                    console.log(event.x, event.y)
-                    info.html("Proxy: " + proxyname + "<br>" + "Value: " + d.value)
-                        .style("left", (event.x) / 2 + "px")
-                        .style("top", (event.y) / 2 + "px");
-
-                    var indices = stats.map((_, index) => index);
-                    var combinedData = stats.map((value, index) => ({ value, index }));
-
-                    // X axis
-                    const x = d3.scaleBand()
-                        .range([0, width])
-                        .domain(combinedData.map(function (d) { return d.index; }))
-                        .padding(1);
-
-                    tooltip.append("g")
-                        .attr("transform", `translate(0, ${height})`)
-                        .call(d3.axisBottom(x))
-                        .selectAll("text")
-                        .attr("transform", "translate(-10,0)rotate(-45)")
-                        .style("text-anchor", "end");
-
-                    // Add Y axis
-                    const y = d3.scaleLinear()
-                        .domain([0, d3.max(combinedData, function (d) { return d.value; })]) // Use the maximum value in your data
-                        .range([height, 0]);
-
-                    tooltip.append("g")
-                        .call(d3.axisLeft(y));
-
-                    // Lines (lollipop stems)
-                    tooltip.selectAll("myline")
-                        .data(combinedData)
-                        .enter()
-                        .append("line")
-                        .attr("x1", function (d) { return x(d.index) + x.bandwidth() / 2; }) // Adjust x position for the center of the band
-                        .attr("x2", function (d) { return x(d.index) + x.bandwidth() / 2; }) // Adjust x position for the center of the band
-                        .attr("y1", function (d) { return y(d.value); })
-                        .attr("y2", y(0))
-                        .attr("stroke", "grey");
-
-                    // Circles (lollipop heads)
-                    tooltip.selectAll("mycircle")
-                        .data(combinedData)
-                        .enter()
-                        .append("circle")
-                        .attr("cx", function (d) { return x(d.index) + x.bandwidth() / 2; }) // Adjust x position for the center of the band
-                        .attr("cy", function (d) { return y(d.value); })
-                        .attr("r", "4")
-                        .style("fill", "#69b3a2")
-                        .attr("stroke", "black");
-                })
-                .on("mouseout", function (d) {
-                    // Restore the circle
-                    d3.select(this).transition()
-                        .duration('50')
-                        .attr("r", 2);
-                    // Hide and clear the tooltip
-                    tooltip.style("opacity", 0);
-                    // tooltip.selectAll(".bar").remove();
-                    // Clear all the elements inside the tooltip SVG
-                    tooltip.selectAll("*").remove();
-                }); -->
-    </body>
+</body>
 
 </html>
