@@ -97,20 +97,17 @@
                 .data(data_array)
                 .enter().append("path")
                 .attr("d", function (d) { return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; })); })
+
                 .style("fill", "none")
                 .style("stroke", "#000001")
                 .style("opacity", 0.003);
 
             // Draw the axis:
             svg.selectAll("myAxis")
-                // For each dimension of the dataset, add a 'g' element:
                 .data(dimensions).enter()
                 .append("g")
-                // Translate this element to its right position on the x axis
                 .attr("transform", function (d) { return "translate(" + x(d) + ")"; })
-                // Build the axis with the call function
                 .each(function (d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
-                // Add axis title
                 .append("text")
                 .style("text-anchor", "middle")
                 .attr("y", -9)
@@ -156,6 +153,7 @@
             // is_train = (this.value == "train")
             updatePlot()
         });
+
 
     </script>
 </body>
