@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 
-<head>
-    <title>t-SNE Visualization with D3.js</title>
-    <!-- Include D3.js from CDN -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
+    <head>
+        <title>t-SNE Visualization with D3.js</title>
+        <!-- Include D3.js from CDN -->
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
         .axis line,
         .axis path {
             stroke: black;
@@ -20,25 +20,24 @@
             opacity: 0.8;
         }
     </style>
-</head>
+    </head>
 
-<body>
-    <!-- The SVG element that will contain our visualization -->
-    <label for="layerwise-proxy-select">Proxy:</label>
-    <select id="layerwise-proxy-select">
-        <option value="fisher_layerwise">fisher_layerwise</option>
-        <option value="grad_norm_layerwise">grad_norm_layerwise</option>
-        <option value="grasp_layerwise">grasp_layerwise</option>
-        <option value="l2_norm_layerwise">l2_norm_layerwise</option>
-        <option value="plain_layerwise">plain_layerwise</option>
-        <option value="snip_layerwise">snip_layerwise</option>
-        <option value="synflow_layerwise">synflow_layerwise</option>
-    </select>
-    <br>
-    <svg id="tsne" width="800" height="600"></svg>
-    <svg id="tooltip" width="100" height="50"></svg>
+    <body>
+        <!-- The SVG element that will contain our visualization -->
+        <label for="layerwise-proxy-select">Proxy:</label>
+        <select id="layerwise-proxy-select">
+            <option value="fisher_layerwise">fisher_layerwise</option>
+            <option value="grad_norm_layerwise">grad_norm_layerwise</option>
+            <option value="grasp_layerwise">grasp_layerwise</option>
+            <option value="l2_norm_layerwise">l2_norm_layerwise</option>
+            <option value="plain_layerwise">plain_layerwise</option>
+            <option value="snip_layerwise">snip_layerwise</option>
+            <option value="synflow_layerwise">synflow_layerwise</option>
+        </select>
+        <br>
+        <div id="my_dataviz"></div>
 
-    <script>
+        <script>
         function transformData(proxyData) {
             return proxyData.x1.map((x, i) => ({
                 x1: x,
@@ -46,13 +45,6 @@
                 color: proxyData.color
             }));
         }
-
-        // Tooltip container (SVG or div)
-        var tooltip = d3.select("body").append("svg")
-            .attr("class", "tooltip")
-            .style("opacity", 0);
-            // .attr("width", 800) // Set the size of the tooltip SVG
-            // .attr("height", 600);
 
         Promise.all([
             d3.json('data/tsne_nb201_output.json'),
@@ -64,34 +56,48 @@
             // Setup the event listener for the dropdown menu
             d3.select('#layerwise-proxy-select').on('change', function (event) {
                 var selectedProxy = d3.select(this).property('value');
-                d3.select('#tsne').selectAll('*').remove();
+                d3.select('#my_dataviz').selectAll('*').remove();
                 drawTsne(transformData(tsneData[selectedProxy]), layerwiseData, selectedProxy);
             });
         });
 
         function drawTsne(tsneData, layerwiseData, proxyname) {
+            const info = d3.select("#my_dataviz")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0.5)
+                .style("position", "absolute")
+                .style("pointer-events", "none")
+                .style("background-color", "white")
+                .style("border", "solid")
+                .style("border-width", "2px")
+                .style("border-radius", "5px")
+                .style("padding", "5px");
+
+            const vlineSvg = d3.select("#my_dataviz")
+                .append("svg")
+                .style("opacity", 0)
+                .style("left", "60px")
+                .style("position", "absolute")
+                .style("pointer-events", "none")
+                .style("background-color", "white")
+                .style("border", "solid")
+                .style("border-width", "2px")
+                .style("border-radius", "5px")
+                .style("padding", "5px");
+
             var margin = { top: 10, right: 30, bottom: 30, left: 40 },
                 width = 800 - margin.left - margin.right,
                 height = 600 - margin.top - margin.bottom;
 
             // Append the svg object to the body of the page
-            var svg_tsne = d3.select("#tsne")
+            var svg_tsne = d3.select("#my_dataviz")
+                .append("svg")
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)
                 .append("g")
                 .attr("transform",
                     "translate(" + margin.left + "," + margin.top + ")");
-
-            // Create a tooltip
-            var tooltip = d3.select("#tooltip")
-                .attr("class", "tooltip")
-                .style("background-color", "white")
-                .style("border", "solid")
-                .style("border-width", "2px")
-                .style("border-radius", "5px")
-                .style("padding", "5px")
-                .attr("width", "800")  // Set the width of the tooltip SVG
-                .attr("height", '600'); // Set the height of the tooltip SVG
 
             // Add X axis
             var x = d3.scaleLinear()
@@ -104,16 +110,83 @@
             // Add Y axis
             var y = d3.scaleLinear()
                 .domain([d3.min(tsneData, d => d.x2), d3.max(tsneData, d => d.x2)])
-                .range([height-20, 0]);
+                .range([height, 0]);
             svg_tsne.append("g")
                 .call(d3.axisLeft(y));
 
+            // Color scale: give me a specie name, I return a color
             var color_scale = d3.scaleOrdinal(d3.schemeCategory10)
                 .domain(['steelblue', 'darkorange', 'forestgreen', 'firebrick', 'darkviolet', 'gold', 'black']);
 
-            console.log(color_scale('darkorange'));
+            svg_tsne.selectAll("dot")
+                .data(tsneData)
+                .enter()
+                .append("circle")
+                .attr("cx", d => x(d.x1))
+                .attr("cy", d => y(d.x2))
+                .attr("r", 5)
+                .style("fill", d => color_scale(d.color))
+                .on("mouseover", function (event, d) {
+                    info.style("opacity", 1);
 
-            svg_tsne.append('g')
+                    // Enlarge the circle
+                    d3.select(this).transition()
+                        .duration('50')
+                        .attr("r", 20)
+                        .attr("fill", "red")
+                        .attr("opacity", 1);
+
+                    // Assuming 'i' is the index you need
+                    let i = tsneData.indexOf(d);
+                    var stats = layerwiseData["cifar10"][i.toString()][proxyname];
+                    var indices = stats.map((_, index) => index);
+                    var combinedData = stats.map((value, index) => ({ value, index }));
+
+                    // Define separate scales for the vertical line chart if needed
+                    var vlineX = d3.scaleBand()
+                        .range([0, 300])
+                        .domain(combinedData.map(d => d.index))
+                        .padding(0.1);
+
+                    var vlineY = d3.scaleLinear()
+                        .range([150, 0])
+                        .domain([0, d3.max(combinedData, d => d.value)]);
+
+                    vlineSvg.style("opacity", 1); // Make the SVG visible
+
+                    // Add Y axis for vlineSvg chart
+                    vlineSvg.append("g")
+                        .call(d3.axisLeft(vlineY));
+                    
+                    console.log(combinedData);
+
+                    vlineSvg.selectAll(".bar").data(combinedData).enter().append("rect").attr("class", "bar")
+                        .attr("x", d => vlineX(d.index)).attr("y", d => vlineY(d.value))
+                        .attr("width", vlineX.bandwidth())
+                        .attr("height", d => 150 - vlineY(d.value))
+                        .attr("fill", color_scale(d.color));
+
+                })
+                .on("mousemove", function (event, d) {
+                    info.html("Proxy: " + proxyname + "<br>" + "X1: " + d.x1 + "<br>X2: " + d.x2)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY + 10) + "px");
+                })
+                .on("mouseleave", function () { info.style("opacity", 0); })
+                .on("mouseout", function (d) {
+                    // Restore the circle
+                    d3.select(this).transition()
+                        .duration('50')
+                        .attr("r", 2);
+                    vlineSvg.style("opacity", 0);
+                    vlineSvg.selectAll(".bar").remove();
+                });
+
+        }
+
+    </script>
+
+        <!-- svg_tsne.append('g')
                 .selectAll("dot")
                 .data(tsneData)
                 .enter()
@@ -134,32 +207,21 @@
                     let i = tsneData.indexOf(d);
                     var stats = layerwiseData["cifar10"][i.toString()][proxyname];
 
-                    // Position and show the tooltip
-                    tooltip.style("opacity", 1)
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY + 10) + "px");
+                    // add info text for info div 
+                    console.log(event.x, event.y)
+                    info.html("Proxy: " + proxyname + "<br>" + "Value: " + d.value)
+                        .style("left", (event.x) / 2 + "px")
+                        .style("top", (event.y) / 2 + "px");
 
                     var indices = stats.map((_, index) => index);
-                    // console.log(indices); ok 
-
                     var combinedData = stats.map((value, index) => ({ value, index }));
-
-                    // Set up scales for the bar chart
-                    //var xScale = d3.scaleBand()
-                    //    .range([0, 200])
-                    //    .domain(combinedData.map(d => d.index))
-                    //    .padding(0.1);
-                    //var yScale = d3.scaleLinear()
-                    //    .range([100, 0])
-                    //    .domain([0, d3.max(combinedData, d => d.value)]);
-
-                    console.log(combinedData);
 
                     // X axis
                     const x = d3.scaleBand()
                         .range([0, width])
                         .domain(combinedData.map(function (d) { return d.index; }))
                         .padding(1);
+
                     tooltip.append("g")
                         .attr("transform", `translate(0, ${height})`)
                         .call(d3.axisBottom(x))
@@ -196,23 +258,6 @@
                         .attr("r", "4")
                         .style("fill", "#69b3a2")
                         .attr("stroke", "black");
-
-
-                    // Draw bars
-                    // tooltip.selectAll(".bar").data(combinedData).enter().append("rect").attr("class", "bar")
-                    //    .attr("x", d => xScale(d.index)).attr("y", d => yScale(d.value))
-                    //    .attr("width", xScale.bandwidth()).attr("height", d => 100 - yScale(d.value)).attr("fill", color_scale(d.color));
-
-                    // Draw x axis
-                    // tooltip.append("g")
-                    //    .attr("transform", "translate(0,100)")
-                    //    .attr("class", "x-axis")
-                    //    .attr("stroke-width", 1)
-                    //    .call(d3.axisBottom(xScale));
-
-                    // Draw y axis
-                    // tooltip.append("g")
-                    //    .call(d3.axisLeft(yScale));
                 })
                 .on("mouseout", function (d) {
                     // Restore the circle
@@ -224,11 +269,7 @@
                     // tooltip.selectAll(".bar").remove();
                     // Clear all the elements inside the tooltip SVG
                     tooltip.selectAll("*").remove();
-                });
-
-        }
-
-    </script>
-</body>
+                }); -->
+    </body>
 
 </html>
