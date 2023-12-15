@@ -74,7 +74,7 @@
         }
 
         div {
-            padding: 10px;
+            padding: 0px;
             border: 1px solid #ccc;
             border-radius: 5px;
             background: #f9f9f9;
@@ -90,22 +90,37 @@
             box-shadow: 0 5px #666;
             transform: translateY(4px);
         }
+
+        #site-title {
+            color: black;
+            font-size: 30px;
+            /* Adjust the size as needed */
+            background-color: #5ed323;
+            padding: 20px;
+            /* Adds some space around the text */
+            border-radius: 5px;
+            /* Optional: adds rounded corners */
+            /* Additional styling options */
+            font-family: Arial, sans-serif;
+            /* Choose a font-family */
+            text-align: center;
+            /* Center aligns the title */
+        }
     </style>
 </head>
 
-<body>
-    <font color="brown" size="20"> Visual Analysis of Neural Architecture
-        with Zero-cost Proxies</font>
+<body style="background-color:#8a73fc">
+    <!-- <font color="black" size="20" style="background-color:#5ed323" > Visual Analysis of Neural Architecture
+        with Zero-cost Proxies</font> -->
+    <h1 id="site-title">Visual Analysis of Neural Architecture with Zero-cost Proxies</h1>
     <br>
-    <div class="grid-container">
+    <div class="grid-container" style="background-color:#8a73fc">
         <div class="item-A" id="A">
             <button id="updateButton">Control Panel A</button>
             <hr>
-            Control Accuray Threshold
-            <!-- Control Panel A -->
-
+            All Time
             <form>
-                <label for="threshold">Accuracy Threshold: <span id="rangeValue">0</span></label>
+                <label for="threshold">Time Threshold: <span id="rangeValue">0</span></label>
                 <input type="range" id="threshold" min="0" max="4000" value="0">
             </form>
             <hr>
@@ -164,14 +179,15 @@
 
             <script>
                 var B_DIV = document.getElementById('B'); // Replace 'myDiv' with your div's ID
-                var margin = {top: 10, right: 30, bottom: 30, left: 60};
-                var width_B = B_DIV.offsetWidth - margin.left - margin.right;
-                var height_B = B_DIV.offsetHeight - margin.top - margin.bottom;
-                console.log("B",width_B, height_B)
+                var margin = { top: 0, right: 30, bottom: 50, left: 50 };
+                var width_B = 640 - margin.left - margin.right;
+                var height_B = 540 - margin.top - margin.bottom;
 
                 const svgScatter = d3.select('#scatter-plot').append('svg')
-                    .attr('width', width_B)
-                    .attr('height', height_B);
+                    .attr('width', width_B + margin.left + margin.right)
+                    .attr('height', height_B + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
                 function updateChart(proxyType, jsonData) {
                     // Clear existing SVG elements for updates
@@ -197,28 +213,16 @@
 
                     const yScale = d3.scaleLinear()
                         .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(processedData, d => d.val_accuracy)])
-                        .range([height_B, 0]);
+                        .range([height_B , 0]);
 
                     // Add axes
                     svgScatter.append("g")
-                        .attr("transform", "translate(0," + width_B + ")")
+                        .attr("transform", "translate(0," + height_B + ")")
                         .call(d3.axisBottom(xScale));
 
                     svgScatter.append("g")
-                        .attr("transform", "translate("+ height_B + ",0)")
+                        //.attr("transform", "translate(55, 0)")
                         .call(d3.axisLeft(yScale));
-
-                    // Redraw the x-axis
-                    // svgScatter.select(".x.axis") // Select the existing x-axis in your SVG
-                    //    .transition()       // Start a transition for smooth updating
-                    //    .duration(1000)     // Set the duration of the transition
-                    //    .call(d3.axisBottom(xScale)); // Redraw the axis with the updated scale
-
-                    // Redraw the y-axis
-                    // svgScatter.select(".y.axis") // Select the existing y-axis in your SVG
-                    //    .transition()       // Start a transition for smooth updating
-                    //    .duration(1000)     // Set the duration of the transition
-                    //    .call(d3.axisLeft(yScale)); // Redraw the axis with the updated scale
 
                     svgScatter.append("text")
                         .attr("transform", "rotate(-90)")
@@ -237,7 +241,6 @@
                     var colorScale = d3.scaleSequential(d3.interpolateViridis) // You can choose any interpolator you like
                         .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(filteredData, d => d.val_accuracy)]);
 
-
                     // Plot points
                     svgScatter.selectAll("circle")
                         .data(filteredData)
@@ -247,7 +250,20 @@
                         .attr("r", 5)
                         .attr("stroke", "black")
                         .attr("stroke-width", 1)
-                        .attr("fill", d => colorScale(d.val_accuracy));
+                        .attr("fill", d => colorScale(d.val_accuracy))
+                        .on("mouseover", function (event, d) {
+                            // Enlarge the circle
+                            d3.select(this).transition()
+                                .duration('50')
+                                .attr("r", 20)
+                                .attr("opacity", 1);
+                        })
+                        .on("mouseout", function (d) {
+                            // Restore the circle
+                            d3.select(this).transition()
+                                .duration('50')
+                                .attr("r", 5);
+                        });
                     //.attr("fill", "steelblue")
                 }
 
@@ -270,7 +286,7 @@
             <script>
 
                 // set the dimensions and margins of the graph
-                var margin = { top: 0, right: 50, bottom: 50, left: 50 };
+                var margin = { top: 20, right: 50, bottom: 320, left: 50 };
                 var C_DIV = document.getElementById('C'); // Replace 'myDiv' with your div's ID
                 var width_C = C_DIV.offsetWidth - margin.left - margin.right;
                 var height_C = C_DIV.offsetHeight - margin.top - margin.bottom;
@@ -405,9 +421,7 @@
             <div id="my_dataviz"></div>
             <script>
                 var D_DIV = document.getElementById('D'); // Replace 'myDiv' with your div's ID
-
-
-                var margin = { top: 50, right: 50, bottom: 50, left: 50 };
+                var margin = { top: 50, right: 50, bottom: 20, left: 50 };
                 var width_D = D_DIV.offsetWidth - margin.left - margin.right;
                 var height_D = D_DIV.offsetHeight - margin.top - margin.bottom;
 
@@ -452,15 +466,15 @@
                     var svg_tsne = d3.select("#my_dataviz")
                         .append("svg")
                         .attr("width", width_D + margin.left + margin.right)
-                        .attr("height", height_D + margin.top + margin.bottom)
+                        .attr("height", height_D + margin.top + margin.bottom - 100)
                         .append("g")
                         .attr("transform",
                             "translate(" + margin.left + "," + margin.top + ")");
 
                     const vlineSvg = d3.select("#my_dataviz")
-                        //.append("div")
                         .append("svg")
                         .style("opacity", 0)
+                        .attr("height", 200)
                         .style("position", "relative")
                         .style("display", "inline-block")
                         .style("pointer-events", "none")
@@ -533,7 +547,7 @@
                             vlineSvg.selectAll(".bar").data(combinedData).enter().append("rect").attr("class", "bar")
                                 .attr("x", d => vlineX(d.index)).attr("y", d => vlineY(d.value))
                                 .attr("width", vlineX.bandwidth())
-                                .attr("height", d => 150 - vlineY(d.value))
+                                .attr("height", d => 200 - vlineY(d.value))
                                 .attr("fill", color_scale(d.color))
                                 .attr("stroke", "black")
                                 .attr("stroke-width", 1)
@@ -567,10 +581,10 @@
             <script>
                 // Set the dimensions and margins of the diagram
                 var data;
-                var margin = { top: 50, right: 50, bottom: 50, left: 50 };
+                var margin = { top: 20, right: 20, bottom: 10, left: 20 };
                 var F_DIV = document.getElementById('F'); // Replace 'myDiv' with your div's ID
                 var width_F = F_DIV.offsetWidth - margin.left - margin.right;
-                var height_F = F_DIV.offsetHeight - margin.top - margin.bottom;
+                var height_F = F_DIV.offsetHeight - margin.top - margin.bottom + 100;
 
                 // Append the svg object to the body of the page
                 var svg_parallel_coordinate = d3.select("#my_parallel_coordinate").append("svg")
@@ -691,7 +705,7 @@
             <div id="my_plot_accum"></div>
 
             <script>
-                var margin = { top: 50, right: 50, bottom: 50, left: 50 };
+                var margin = { top: 50, right: 50, bottom: 120, left: 50 };
                 var div = document.getElementById('E'); // Replace 'myDiv' with your div's ID
                 var width_E = div.offsetWidth - margin.left - margin.right;
                 var height_E = div.offsetHeight - margin.top - margin.bottom;
