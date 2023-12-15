@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v7.js"></script>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_corr_matrix"></div>
+
+<!-- Slider for selecting the key -->
+<input type="range" min="0" max="100" value="0" class="slider" id="myRange">
+<span id="sliderValue">0</span>
+
+<body>
+    <script>
+
+        // set the dimensions and margins of the graph
+        var margin = { top: 30, right: 30, bottom: 30, left: 80 },
+            width = 450 - margin.left - margin.right,
+            height = 450 - margin.top - margin.bottom;
+
+        // append the svg object to the body of the page
+        var svg = d3.select("#my_corr_matrix")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+
+        // Labels of row and columns
+        var myGroups = ["fisher", "grad_norm", "grasp", "l2_norm", "plain", "snip", "synflow"]
+        var myVars = ["fisher", "grad_norm", "grasp", "l2_norm", "plain", "snip", "synflow"]
+
+        // Build X scales and axis:
+        var x = d3.scaleBand()
+            .range([0, width])
+            .domain(myGroups)
+            .padding(0.01);
+        svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+
+        // Build Y scales and axis:
+        var y = d3.scaleBand()
+            .range([height, 0])
+            .domain(myVars)
+            .padding(0.01);
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Build color scale
+        var myColor = d3.scaleLinear()
+            .range(["white", "#69b3a2"])
+            .domain([-1, 1])
+
+        // Function to update the heatmap
+        function updateHeatmap(key) {
+            d3.json("data/arch_wise_corr_matrix.json").then(function (data) {
+                console.log(data[key]);
+                // Process your JSON data here
+                var processedData = processData(data[key]);
+
+                // Use 'processedData' to create or update your heatmap
+                // create a tooltip
+                var tooltip = d3.select("#my_corr_matrix")
+                    .append("div")
+                    .style("opacity", 0.5)
+                    .style("position", "absolute")
+                    .attr("class", "tooltip")
+                    .style("background-color", "white")
+                    .style("border", "solid")
+                    .style("border-width", "2px")
+                    .style("border-radius", "5px")
+                    .style("padding", "5px")
+
+                // Three function that change the tooltip when user hover / move / leave a cell
+                var mouseover = function (d) {
+                    tooltip.style("opacity", 1)
+                }
+                var mousemove = function (event, d) {
+                    tooltip
+                        .html("The exact value of<br>this cell is: " + d.value)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY + 10) + "px");
+                }
+                var mouseleave = function (d) {
+                    tooltip.style("opacity", 0)
+                }
+
+                // add the squares
+                svg.selectAll()
+                    .data(processedData)
+                    //, function (d) { return d.group + ':' + d.variable; })
+                    .enter()
+                    .append("rect")
+                    .attr("x", function (d) { return x(d.group) })
+                    .attr("y", function (d) { return y(d.variable) })
+                    .attr("width", x.bandwidth())
+                    .attr("height", y.bandwidth())
+                    .style("fill", function (d) { return myColor(d.value) })
+                    .on("mouseover", mouseover)
+                    .on("mousemove", mousemove)
+                    .on("mouseleave", mouseleave)
+
+            });
+        }
+
+        // Initial heatmap display
+        updateHeatmap(0);
+
+        // Listen to the slider
+        //d3.select("#myRange").on("input", function () {
+        //    updateHeatmap(this.value);
+        // });
+        // Get references to the slider and the display element
+        var slider = document.getElementById("myRange");
+        var display = document.getElementById("sliderValue");
+
+        // Update the display element whenever the slider's value changes
+        slider.oninput = function () {
+            display.innerHTML = this.value;
+
+            // Also update the heatmap if needed
+            updateHeatmap(this.value);
+        }
+
+        function processData(data) {
+            var newData = [];
+            for (var i = 0; i < data.length; i++) {
+                for (var j = 0; j < data[i].length; j++) {
+                    newData.push({
+                        group: myGroups[j],  // x-axis label
+                        variable: myVars[i], // y-axis label
+                        value: data[i][j]    // correlation value
+                    });
+                }
+            }
+            console.log(newData);
+            return newData;
+        }
+
+
+    </script>
+</body>
+
+</html>

@@ -124,7 +124,9 @@
                 .append("circle")
                 .attr("cx", d => x(d.x1))
                 .attr("cy", d => y(d.x2))
-                .attr("r", 5)
+                .attr("r", 2)
+                .attr("stroke", "black")
+                .attr("stroke-width", 1)
                 .style("fill", d => color_scale(d.color))
                 .on("mouseover", function (event, d) {
                     info.style("opacity", 1);
