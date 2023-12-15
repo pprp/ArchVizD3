@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
     <title>Neural Architecture Visualization Dashboard</title>
     <style>
         .grid-container {
@@ -163,104 +163,51 @@
             <div id="scatter-plot"></div>
 
             <script>
+                // set the dimensions and margins of the graph
+                var margin = { top: 10, right: 30, bottom: 30, left: 60 };
                 var B_DIV = document.getElementById('B'); // Replace 'myDiv' with your div's ID
-                var margin = {top: 10, right: 30, bottom: 30, left: 60};
-                var width_B = B_DIV.offsetWidth - margin.left - margin.right;
-                var height_B = B_DIV.offsetHeight - margin.top - margin.bottom;
-                console.log("B",width_B, height_B)
+                var width = B_DIV.offsetWidth - margin.left - margin.right;
+                var height = B_DIV.offsetHeight - margin.top - margin.bottom;
+                //    width = 460 - margin.left - margin.right,
+                //    height = 400 - margin.top - margin.bottom;
 
-                const svgScatter = d3.select('#scatter-plot').append('svg')
-                    .attr('width', width_B)
-                    .attr('height', height_B);
+                // append the svg object to the body of the page
+                const svg = d3.select("#my_dataviz")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-                function updateChart(proxyType, jsonData) {
-                    // Clear existing SVG elements for updates
-                    svgScatter.selectAll('*').remove();
+                //Read the data
+                d3.csv("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/2_TwoNum.csv").then(function (data) {
 
-                    // Process jsonData into a suitable format for D3
-                    const processedData = Object.keys(jsonData).map(key => {
-                        const item = jsonData[key];
-                        return {
-                            proxy: item[proxyType].score,
-                            val_accuracy: item.val_accuracy
-                        };
-                    });
+                    // Add X axis
+                    const x = d3.scaleLinear()
+                        .domain([0, 4000])
+                        .range([0, width]);
+                    svg.append("g")
+                        .attr("transform", `translate(0, ${height})`)
+                        .call(d3.axisBottom(x));
 
-                    var filteredData = processedData.filter(function (d, i) {
-                        return d.val_accuracy > 50;
-                    });
+                    // Add Y axis
+                    const y = d3.scaleLinear()
+                        .domain([0, 500000])
+                        .range([height, 0]);
+                    svg.append("g")
+                        .call(d3.axisLeft(y));
 
-                    // Define scales
-                    const xScale = d3.scaleLinear()
-                        .domain([d3.min(filteredData, d => d.proxy), d3.max(processedData, d => d.proxy)])
-                        .range([0, width_B]);
+                    // Add dots
+                    svg.append('g')
+                        .selectAll("dot")
+                        .data(data)
+                        .join("circle")
+                        .attr("cx", function (d) { return x(d.GrLivArea); })
+                        .attr("cy", function (d) { return y(d.SalePrice); })
+                        .attr("r", 1.5)
+                        .style("fill", "#69b3a2")
 
-                    const yScale = d3.scaleLinear()
-                        .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(processedData, d => d.val_accuracy)])
-                        .range([height_B, 0]);
-
-                    // Add axes
-                    svgScatter.append("g")
-                        .attr("transform", "translate(0," + width_B + ")")
-                        .call(d3.axisBottom(xScale));
-
-                    svgScatter.append("g")
-                        .attr("transform", "translate("+ height_B + ",0)")
-                        .call(d3.axisLeft(yScale));
-
-                    // Redraw the x-axis
-                    // svgScatter.select(".x.axis") // Select the existing x-axis in your SVG
-                    //    .transition()       // Start a transition for smooth updating
-                    //    .duration(1000)     // Set the duration of the transition
-                    //    .call(d3.axisBottom(xScale)); // Redraw the axis with the updated scale
-
-                    // Redraw the y-axis
-                    // svgScatter.select(".y.axis") // Select the existing y-axis in your SVG
-                    //    .transition()       // Start a transition for smooth updating
-                    //    .duration(1000)     // Set the duration of the transition
-                    //    .call(d3.axisLeft(yScale)); // Redraw the axis with the updated scale
-
-                    svgScatter.append("text")
-                        .attr("transform", "rotate(-90)")
-                        .attr("y", 0 - margin.left)
-                        .attr("x", 0 - (height_B / 2))
-                        .attr("dy", "1em")
-                        .style("text-anchor", "middle")
-                        .text("Cumulative Probability");
-
-                    svgScatter.append("text")
-                        .attr("transform", "translate(" + (width_B / 2) + " ," + (height_B + margin.top + 10) + ")")
-                        .style("text-anchor", "middle")
-                        .text("Accuracy");
-
-                    // Define a color scale using a D3 color interpolator
-                    var colorScale = d3.scaleSequential(d3.interpolateViridis) // You can choose any interpolator you like
-                        .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(filteredData, d => d.val_accuracy)]);
-
-
-                    // Plot points
-                    svgScatter.selectAll("circle")
-                        .data(filteredData)
-                        .enter().append("circle")
-                        .attr("cx", d => xScale(d.proxy))
-                        .attr("cy", d => yScale(d.val_accuracy))
-                        .attr("r", 5)
-                        .attr("stroke", "black")
-                        .attr("stroke-width", 1)
-                        .attr("fill", d => colorScale(d.val_accuracy));
-                    //.attr("fill", "steelblue")
-                }
-
-                d3.json("data/zc_nasbench201_20p.json").then(function (filteredData) {
-                    d3.select('#proxy-select').on('change', function () {
-                        const selectedProxy = d3.select(this).property('value');
-                        updateChart(selectedProxy, filteredData);
-                    });
-
-                    // Initial rendering
-                    updateChart('epe_nas', filteredData);
-                });
-
+                })
             </script>
         </div>
         <div class="item-C" id="C">
@@ -270,7 +217,7 @@
             <script>
 
                 // set the dimensions and margins of the graph
-                var margin = { top: 0, right: 50, bottom: 50, left: 50 };
+                var margin = { top: 50, right: 50, bottom: 50, left: 50 };
                 var C_DIV = document.getElementById('C'); // Replace 'myDiv' with your div's ID
                 var width_C = C_DIV.offsetWidth - margin.left - margin.right;
                 var height_C = C_DIV.offsetHeight - margin.top - margin.bottom;
@@ -568,7 +515,7 @@
                 // Set the dimensions and margins of the diagram
                 var data;
                 var margin = { top: 50, right: 50, bottom: 50, left: 50 };
-                var F_DIV = document.getElementById('F'); // Replace 'myDiv' with your div's ID
+                var F_DIV = document.getFlementById('F'); // Replace 'myDiv' with your div's ID
                 var width_F = F_DIV.offsetWidth - margin.left - margin.right;
                 var height_F = F_DIV.offsetHeight - margin.top - margin.bottom;
 
