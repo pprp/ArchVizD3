@@ -28,8 +28,14 @@
 </head>
 
 <body>
+    <input type="number" id="buttonXlim" value=0>
+    <select id="accuracy-select">
+        <option value="train">train</option>
+        <option value="test">test</option>
+    </select>
     <script>
         // Set the dimensions and margins of the diagram
+        var data;
         var margin = { top: 30, right: 10, bottom: 10, left: 0 },
             width = 960 - margin.left - margin.right,
             height = 400 - margin.top - margin.bottom;
@@ -41,22 +47,42 @@
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+        var is_train = true
+        var threshold = 0
 
+        function updatePlot() {
+            const data_array = Object.values(data).filter(function (d, i) {
+                // console.log(d)
+                if (is_train == true) {
+                    return d.accuracy > threshold;
+                } else {
+                    return d["test-accuracy"] > threshold;
+                }
+            });
 
-        // Parse the Data
-        d3.json("input.json").then(function (data) {
-            // console.log(data)
-            // Extract the list of dimensions and create a scale for each.
-            const data_array = Object.values(data)
-            console.log(data_array)
-
-            dimensions = ["A", "B", "C"]
-
-            var y = {
-                "A": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
-                "B": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
-                "C": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
-            };
+            if (is_train == true) {
+                dimensions = ["A", "B", "C", "D", "E", "F", "accuracy"]
+                var y = {
+                    "A": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "B": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "C": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "D": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "E": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "F": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "accuracy": d3.scaleLinear([threshold, 100], [height, 0]),
+                };
+            } else {
+                dimensions = ["A", "B", "C", "D", "E", "F", "test-accuracy"]
+                var y = {
+                    "A": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "B": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "C": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "D": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "E": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "F": d3.scalePoint(["none", "skip_connect", "avg_pool_3x3", "nor_conv_1x1", "nor_conv_3x3"], [height, 0]),
+                    "test-accuracy": d3.scaleLinear([threshold, 100], [height, 0]),
+                };
+            }
 
             // Build the X scale and axis:
             var x = d3.scalePoint()
@@ -64,10 +90,7 @@
                 .padding(1)
                 .domain(dimensions);
 
-            // The path function takes a row of the data as input, and returns the corresponding line.
-            function path(d) {
-                return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; }));
-            }
+            svg.selectAll("*").remove();
 
             // Draw the lines
             svg.selectAll("myPath")
@@ -77,7 +100,7 @@
 
                 .style("fill", "none")
                 .style("stroke", "#000001")
-                .style("opacity", 0.1);
+                .style("opacity", 0.003);
 
             // Draw the axis:
             svg.selectAll("myAxis")
@@ -94,16 +117,41 @@
             // Add interaction
             svg.selectAll("path")
                 .on("mouseover", function (event, d) {
-                    console.log(event.target.style.stroke)
+                    // console.log(event.target.style.stroke)
                     if (String(event.target.style.stroke).includes("rgb")) {
-                        d3.select(this).transition().duration(200).style("opacity", 1);
+                        d3.select(this).transition().duration(200).style("opacity", 1).style("stroke", "#66CCFF").style("stroke-width", "3");
                     }
                 })
                 .on("mouseout", function (event, d) {
                     if (String(event.target.style.stroke).includes("rgb")) {
-                        d3.select(this).transition().duration(200).style("opacity", 0.1);
+                        d3.select(this).transition().duration(200).style("opacity", 0.003).style("stroke", "#000001").style("stroke-width", "1");
                     }
                 });
+
+
+        }
+
+        // Parse the Data
+        d3.json("data/cifar10_train.json").then(function (json_data) {
+            data = json_data;
+            updatePlot();
+            // console.log(data)
+            // Extract the list of dimensions and create a scale for each
+        });
+        d3.select("#buttonXlim").on("input", function () {
+            threshold = +this.value;
+            updatePlot()
+        })
+
+        d3.select('#accuracy-select').on('change', function () {
+            console.log(this.value)
+            if (this.value == "train") {
+                is_train = true
+            } else {
+                is_train = false
+            }
+            // is_train = (this.value == "train")
+            updatePlot()
         });
 
 
