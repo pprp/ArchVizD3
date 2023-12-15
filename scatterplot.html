@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>testD3_chp14_1.html</title>
+
+    <script type="text/javascript" src="http://d3js.org/d3.v7.min.js">
+    </script>
+
+</head>
+
+<body>
+    <label for="proxy-select">Proxy:</label>
+    <select id="proxy-select">
+        <option value="epe_nas">epe_nas</option>
+        <option value="fisher">fisher</option>
+        <option value="flops">flops</option>
+        <option value="params">params</option>
+        <option value="grad_norm">grad_norm</option>
+        <option value="grasp">grasp</option>
+        <option value="nwot">nwot</option>
+        <option value="jacov">jacov</option>
+        <option value="l2_norm">l2_norm</option>
+        <option value="plain">plain</option>
+        <option value="snip">snip</option>
+        <option value="synflow">synflow</option>
+        <option value="zen">zen</option>
+    </select>
+    <svg width="960" height="600"></svg>
+    <div id="scatter-plot"></div>
+
+    <script>
+        const svgScatter = d3.select('#scatter-plot').append('svg')
+            .attr('width', width)
+            .attr('height', height);
+
+        function updateChart(proxyType, jsonData) {
+            // Clear existing SVG elements for updates
+            svgScatter.selectAll('*').remove();
+
+            // Process jsonData into a suitable format for D3
+            const processedData = Object.keys(jsonData).map(key => {
+                const item = jsonData[key];
+                return {
+                    proxy: item[proxyType].score,
+                    val_accuracy: item.val_accuracy
+                };
+            });
+
+            var filteredData = processedData.filter(function (d, i) {
+                return d.val_accuracy > 50;
+            });
+
+            // Define scales
+            const xScale = d3.scaleLinear()
+                .domain([d3.min(filteredData, d => d.proxy), d3.max(processedData, d => d.proxy)])
+                .range([40, width - 20]);
+
+            const yScale = d3.scaleLinear()
+                .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(processedData, d => d.val_accuracy)])
+                .range([height - 20, 20]);
+
+            // Add axes
+            svgScatter.append("g")
+                .attr("transform", "translate(0," + (height - 20) + ")")
+                .call(d3.axisBottom(xScale));
+
+            svgScatter.append("g")
+                .attr("transform", "translate(40,0)")
+                .call(d3.axisLeft(yScale));
+
+            // Redraw the x-axis
+            svgScatter.select(".x.axis") // Select the existing x-axis in your SVG
+                .transition()       // Start a transition for smooth updating
+                .duration(1000)     // Set the duration of the transition
+                .call(d3.axisBottom(xScale)); // Redraw the axis with the updated scale
+
+            // Redraw the y-axis
+            svgScatter.select(".y.axis") // Select the existing y-axis in your SVG
+                .transition()       // Start a transition for smooth updating
+                .duration(1000)     // Set the duration of the transition
+                .call(d3.axisLeft(yScale)); // Redraw the axis with the updated scale
+
+            svgScatter.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .text("Cumulative Probability");
+
+            svgScatter.append("text")
+                .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.top + 10) + ")")
+                .style("text-anchor", "middle")
+                .text("Accuracy");
+
+            // Define a color scale using a D3 color interpolator
+            var colorScale = d3.scaleSequential(d3.interpolateViridis) // You can choose any interpolator you like
+                .domain([d3.min(filteredData, d => d.val_accuracy), d3.max(filteredData, d => d.val_accuracy)]);
+
+
+            // Plot points
+            svgScatter.selectAll("circle")
+                .data(filteredData)
+                .enter().append("circle")
+                .attr("cx", d => xScale(d.proxy))
+                .attr("cy", d => yScale(d.val_accuracy))
+                .attr("r", 5)
+                .attr("fill", d => colorScale(d.val_accuracy));
+        }
+
+        d3.json("data/zc_nasbench201_20p.json").then(function (filteredData) {
+            d3.select('#proxy-select').on('change', function () {
+                const selectedProxy = d3.select(this).property('value');
+                updateChart(selectedProxy, filteredData);
+            });
+
+            // Initial rendering
+            updateChart('epe_nas', filteredData);
+        });
+
+    </script>
+</body>
+
+</html>
