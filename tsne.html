@@ -35,7 +35,7 @@
         <option value="synflow_layerwise">synflow_layerwise</option>
     </select>
     <br>
-    <div id="my_dataviz"></div>
+    <div id="my_tsne_viz"></div>
 
     <script>
         function transformData(proxyData) {
@@ -56,13 +56,13 @@
             // Setup the event listener for the dropdown menu
             d3.select('#layerwise-proxy-select').on('change', function (event) {
                 var selectedProxy = d3.select(this).property('value');
-                d3.select('#my_dataviz').selectAll('*').remove();
+                d3.select('#my_tsne_viz').selectAll('*').remove();
                 drawTsne(transformData(tsneData[selectedProxy]), layerwiseData, selectedProxy);
             });
         });
 
         function drawTsne(tsneData, layerwiseData, proxyname) {
-            const info = d3.select("#my_dataviz")
+            const info = d3.select("#my_tsne_viz")
                 .append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0.5)
@@ -74,7 +74,7 @@
                 .style("border-radius", "5px")
                 .style("padding", "5px");
 
-            const vlineSvg = d3.select("#my_dataviz")
+            const vlineSvg = d3.select("#my_tsne_viz")
                 .append("svg")
                 .style("opacity", 0)
                 .style("left", "60px")
@@ -91,7 +91,7 @@
                 height = 600 - margin.top - margin.bottom;
 
             // Append the svg object to the body of the page
-            var svg_tsne = d3.select("#my_dataviz")
+            var svg_tsne = d3.select("#my_tsne_viz")
                 .append("svg")
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)

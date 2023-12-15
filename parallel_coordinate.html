@@ -33,6 +33,7 @@
         <option value="train">train</option>
         <option value="test">test</option>
     </select>
+    <div id="my_parallel_coordinate"></div>
     <script>
         // Set the dimensions and margins of the diagram
         var data;
@@ -41,7 +42,7 @@
             height = 400 - margin.top - margin.bottom;
 
         // Append the svg object to the body of the page
-        var svg = d3.select("body").append("svg")
+        var svg_parallel_coordinate = d3.select("#my_parallel_coordinate").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .append("g")
@@ -90,10 +91,10 @@
                 .padding(1)
                 .domain(dimensions);
 
-            svg.selectAll("*").remove();
+            svg_parallel_coordinate.selectAll("*").remove();
 
             // Draw the lines
-            svg.selectAll("myPath")
+            svg_parallel_coordinate.selectAll("myPath")
                 .data(data_array)
                 .enter().append("path")
                 .attr("d", function (d) { return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; })); })
@@ -103,7 +104,7 @@
                 .style("opacity", 0.003);
 
             // Draw the axis:
-            svg.selectAll("myAxis")
+            svg_parallel_coordinate.selectAll("myAxis")
                 .data(dimensions).enter()
                 .append("g")
                 .attr("transform", function (d) { return "translate(" + x(d) + ")"; })
@@ -115,7 +116,7 @@
                 .style("fill", "black");
 
             // Add interaction
-            svg.selectAll("path")
+            svg_parallel_coordinate.selectAll("path")
                 .on("mouseover", function (event, d) {
                     // console.log(event.target.style.stroke)
                     if (String(event.target.style.stroke).includes("rgb")) {
